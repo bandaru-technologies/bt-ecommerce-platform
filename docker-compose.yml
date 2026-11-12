@@ -1,0 +1,50 @@
+services:
+
+  bt-postgres:
+    image: postgres:16
+    container_name: bt-postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bt-service-registry:
+    build: ./bt-service-registry
+    container_name: bt-service-registry
+    ports:
+      - "8761:8761"
+
+  bt-product-service:
+    build: ./bt-product-service
+    container_name: bt-product-service
+    ports:
+      - "9081:8081"
+    depends_on:
+      bt-postgres:
+        condition: service_healthy
+      bt-service-registry:
+        condition: service_started
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create
+      SPRING_DATASOURCE_URL: jdbc:postgresql://bt-postgres:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://bt-service-registry:8761/eureka
+
+  bt-api-gateway:
+    build: ./bt-api-gateway
+    container_name: bt-api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - bt-service-registry
+      - bt-product-service
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://bt-service-registry:8761/eureka

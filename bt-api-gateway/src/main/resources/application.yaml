@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: bt-api-gateway
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+      routes:
+        - id: product-service
+          uri: lb://BT-PRODUCT-SERVICE
+          predicates:
+            - Path=/products/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://bt-service-registry:8761/eureka
+
